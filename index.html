@@ -1,98 +1,111 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-<title>RoBeats to osu! Converter</title>
+	<title>RoBeats to osu! Converter</title>
 </head>
-<body> 
-<script>
 
-function parser() {
+<body>
+	<script>
+		function parser() {
+			//document.getElementById("convertButton").innerHTML= "Downloading audio...";
+			document.getElementById("convertButton").innerHTML = "Done!";
 
-	//document.getElementById("convertButton").innerHTML= "Downloading audio...";
-    document.getElementById("convertButton").innerHTML= "Done!";
+			//make the string blank before the variables realize
+			document.getElementById("out").value = "";
 
-	//make the string blank before the variables realize
-    document.getElementById("out").value = "";
+			//robeats input variables
+			let str = document.getElementById("in").value;
+			const array = str.split("\n");
 
-	//robeats input variables
-	let str = document.getElementById("in").value;
-    const array = str.split("\n"); 
+			//note section variables
+			var start, end = start = 0;
+			while (start < array.length && !array[start].includes(");")) {
+				start++;
+			}
+			while (end < array.length && !array[end].includes("TimingPoints")) {
+				end++;
+			}
 
-	//note section variables
-    var start, end = start = 0;
-    while (array[start].match(/\);/) != ");") {
-    	start++;
-    }
-    while (array[end].match(/TimingPoints/) != "TimingPoints") {
-    	end++;
-    }
-    
-    //timing point variables 
-    
-	let count = (str.match(/BeatLength/g) || []).length,
-    timingPointTime = array[end+1].match(/(?<=Time = )(.*?)(?=\,)/)[0] * 1,
-    beatLength = array[end+2].match(/(?<=BeatLength = )(.*?)(?=$)/)[0] * 1,
-    
-    //metadata variables
-    audioID = array[1].match(/(?<=\/\/)(.*?)(?=")/)[0] * 1,
-    title, 
-	artist = array[5].match(/(?<=")(.*?)(?=")/)[0],
-	audioMod = array[10].match(/(?<== )(.*?)(?=,)/)[0] * 1,
-	difficulty = array[6].match(/(?<== )(.*?)(?=,)/)[0] * 1,
-    mapper = array[3].match(/(?<=Map by )(.*?)(?=\.?",)/),
-	creator = "RobeatsArchive";
+			//timing point variables 
 
-	
-	if (mapper == null) {
-    	mapper = "";
-    } else {
-   		mapper = "".concat(" by ",array[3].match(/(?<=Map by )(.*?)(?=\.?",)/)[0]);
-    }
-    
-    //let's just say this took a while
-	switch(audioMod) {
-        case 0: audioMod = "Normal"; title = array[2].match(/(?<=")(.*?)(?=")/)[0]; break;
-        case 1: audioMod = "Hard"; title = array[2].match(/(?<=")(.*?)(?= \(Hard\))/)[0]; break;
-    	case 2: audioMod = "Easy"; title = array[2].match(/(?<=")(.*?)(?= \(Easy\))/)[0]; break;
-	}
+			let count = (str.match(/BeatLength/g) || []).length,
+			timingPointTime = parseFloat(array[end + 1].match(/Time = ([\d.]+)/)[1]);
+			beatLength = parseFloat(array[end + 1].match(/BeatLength = ([\d.]+)/)[1]);
 
-	//audio downloading doesn't work as of march 22nd roblox audio update
-	
-	//download audio script
-	
-	fetch("https://api.hyraaaa.io/audio/" + audioID)
-		.then(resp => resp.blob())
-		.then(blob => {
-    		const url = window.URL.createObjectURL(blob);
-    		const a = document.createElement('a');
-    		a.style.display = 'none';
-    		a.href = url;
-    		// the filename you want
-   			a.download = audioID + ".mp3";
-   	 		document.body.appendChild(a);
-   	 		a.click();
-    		window.URL.revokeObjectURL(url);
-            // if audio works again cut and paste button function here
-  	})
-    /*
-	.catch(() => alert("Audio downloading failed."));
-	setTimeout(function() {
-		document.getElementById("convertButton").innerHTML = "Convert!";
-    }, 1000);
-	*/
-    
-    //button function
-	document.getElementById("convertButton").innerHTML= "Done!";
-    document.getElementById("instructions").innerHTML= "Make a new folder and make a .osu file (with any name) and insert your audio into it. To get audio you have to use means other than downloading from the Roblox website because of the March 22nd update breaking downloading of audios.";
-    setTimeout(function() {
-    	document.getElementById("convertButton").innerHTML = "Convert!";
-    }, 1000);
-    
-document.getElementById("out").value =
-`osu file format v14
+
+			//metadata variables
+			let audioLine = array.find(line => line.includes("AudioAssetId"));
+			let audioID = audioLine ? audioLine.match(/rbxassetid:\/\/(\d+)/)[1] : "0";
+
+			let titleLine = array.find(line => line.includes("AudioFilename"));
+			let title = titleLine ? titleLine.match(/"(.+)"/)[1] : "Unknown";
+
+			let difficultyLine = array.find(line => line.includes("AudioDifficulty"));
+			let difficulty = difficultyLine ? parseInt(difficultyLine.match(/\d+/)[0]) : 1;
+
+			let artistLine = array.find(line => line.includes("AudioArtist"));
+			let artist = artistLine ? artistLine.match(/"(.+)"/)[1] : "Unknown";
+
+			let audioModLine = array.find(line => line.includes("AudioMod"));
+			let audioMod = audioModLine ? parseInt(audioModLine.match(/\d+/)[0]) : 0;
+
+			let mapper = array[3].match(/(?<=Map by )(.*?)(?=\.?",)/);
+			let creator = "RobeatsArchive";
+
+
+
+			if (mapper == null) {
+				mapper = "";
+			} else {
+				mapper = "".concat(" by ", array[3].match(/(?<=Map by )(.*?)(?=\.?",)/)[0]);
+			}
+
+			//let's just say this took a while
+			switch (audioMod) {
+				case 0: audioMod = "Normal"; break;
+				case 1: audioMod = "Hard"; break;
+				case 2: audioMod = "Easy"; break;
+			}
+
+			//audio downloading doesn't work as of march 22nd roblox audio update
+
+			//download audio script
+
+			/*
+			fetch("https://api.hyraaaa.io/audio/" + audioID)
+				.then(resp => resp.blob())
+				.then(blob => {
+					const url = window.URL.createObjectURL(blob);
+					const a = document.createElement('a');
+					a.style.display = 'none';
+					a.href = url;
+					// the filename you want
+					a.download = audioID + ".mp3";
+					document.body.appendChild(a);
+					a.click();
+					window.URL.revokeObjectURL(url);
+					// if audio works again cut and paste button function here
+				})
+			/*
+			.catch(() => alert("Audio downloading failed."));
+			setTimeout(function() {
+				document.getElementById("convertButton").innerHTML = "Convert!";
+			}, 1000);
+			*/
+
+			//button function
+			document.getElementById("convertButton").innerHTML = "Done!";
+			document.getElementById("instructions").innerHTML = "Make a new folder and make a .osu file (with any name) and insert your audio into it. To get audio you have to use means other than downloading from the Roblox website because of the March 22nd update breaking downloading of audios.";
+			setTimeout(function () {
+				document.getElementById("convertButton").innerHTML = "Convert!";
+			}, 1000);
+
+			document.getElementById("out").value =
+				`osu file format v14
 [General]
-AudioFilename: `.concat(audioID,".mp3") +
-`
+AudioFilename: `.concat(audioID, ".mp3") +
+				`
 AudioLeadIn: 0
 PreviewTime: -1
 Countdown: 0
@@ -108,8 +121,8 @@ BeatDivisor: 4
 GridSize: 8
 TimelineZoom: 2  
 [Metadata]
-`.concat("Title:",title,"\n","TitleUnicode:",title,"\n","Artist:",artist,"\n","ArtistUnicode:",artist,"\n","Creator:",creator,"\n","Version:",audioMod," [",difficulty,"]",mapper,"\n") + 
-`Source:
+`.concat("Title:", title, "\n", "TitleUnicode:", title, "\n", "Artist:", artist, "\n", "ArtistUnicode:", artist, "\n", "Creator:", creator, "\n", "Version:", audioMod, " [", difficulty, "]", mapper, "\n") +
+				`Source:
 Tags:
 BeatmapID:0
 BeatmapSetID:-1
@@ -131,55 +144,90 @@ SliderTickRate:1
 //Storyboard Sound Samples
 [TimingPoints]
 `
-//timing point loop
-for (let i = 0; i < count; i++) {
+			//timing point loop
+			for (let i = 0; i < count; i++) {
 
-    timingPointTime = array[end+1+(i*3)].match(/(?<=Time = )(.*?)(?=\,)/)[0];
-    beatLength = array[end+2+(i*3)].match(/(?<=BeatLength = )(.*?)(?=$)/)[0];
-    document.getElementById("out").value += "".concat(timingPointTime,",",beatLength,",4,3,0,30,1,0\n");
-    
-}
+				let timingLine = array[end + 1 + (i * 3)];
+				let timingMatch = timingLine ? timingLine.match(/Time\s*=\s*([\d.]+)/) : null;
+				timingPointTime = timingMatch ? parseFloat(timingMatch[1]) : 0;
 
-document.getElementById("out").value += "\n\n[HitObjects]\n";
+				let beatLine = array[end + 1 + (i * 3)];
+				let beatMatch = beatLine ? beatLine.match(/BeatLength\s*=\s*([\d.]+)/) : null;
+				beatLength = beatMatch ? parseFloat(beatMatch[1]) : 0;
 
-	//note parser loop
-	for (let i = start; i <= array.length; i++) {
+				document.getElementById("out").value += "".concat(timingPointTime, ",", beatLength, ",4,3,0,30,1,0\n");
+			}
 
-		let note, time, lane, test, length, tail;
-		note = array[i].match(/v\d/); //v1 or v2
-      
-		if (note[0] == "v2") { //v2 variables
+			document.getElementById("out").value += "\n\n[HitObjects]\n";
 
-   			time = array[i].match(/(?<=\()(.*?)(?=\,)/)[0] * 1;
-    		lane = array[i].match(/(?<= )(.*?)(?=\,)/)[0] * 128-64; 
-    		length = array[i].match(/(?<= \d, )(.*?)(?=\))/)[0] * 1;
-    		tail = time + length;
+			//note parser loop
+			for (let i = 0; i < array.length; i++) {
+				let line = array[i].trim();
 
-			document.getElementById("out").value += "".concat(lane,",192,",time,",128,0,",tail,":0:0:0:0:\n");
-    
-		} else {
-    
-    		time = array[i].match(/(?<=\()(.*?)(?=\,)/)[0] * 1;
-    		lane = array[i].match(/(?<= )(.*?)(?=\))/)[0] * 128-64;
+				// skip empty lines
+				if (!line) continue;
 
-			document.getElementById("out").value += "".concat(lane,",192,",time,",1,","0,0:0:0:0:\n");
-			
-  		}
-	}
-}
+				// handle hold notes
+				if (line.startsWith("hold(")) {
+					let match = line.match(/hold\((\d+),(\d+),(\d+)\)/);
+					if (match) {
+						let time = parseInt(match[1]);
+						let track = parseInt(match[2]);
+						let duration = parseInt(match[3]);
+						let tail = time + duration;
 
-//special thanks to RegExr, it was the real mvp during the making of this project
-</script>
-<a href="https://github.com/cavestoryguts/rob2osu">https://github.com/cavestoryguts/rob2osu</a><br/>
-	   <div>
-            <textarea id="in" name="textarea1" style="width:1000px;height:200px">Paste the contents of your RoBeats map script here!
+						let lane = track * 128 - 64; // adjust as before
+						document.getElementById("out").value += `${lane},192,${time},128,0,${tail}:0:0:0:0:\n`;
+					}
+				}
+				// handle normal notes
+				else if (line.startsWith("note(")) {
+					let match = line.match(/note\((\d+),(\d+)\)/);
+					if (match) {
+						let time = parseInt(match[1]);
+						let track = parseInt(match[2]);
+
+						let lane = track * 128 - 64;
+						document.getElementById("out").value += `${lane},192,${time},1,0,0:0:0:0:\n`;
+					}
+				}
+			}
+		}
+
+		function downloadOutput() {
+			const osuContent = document.getElementById("out").value;
+			const titleLine = osuContent.match(/Title:(.+)/); // grab the title from the output
+			let fileName = "map.osu";
+			if (titleLine && titleLine[1]) {
+				fileName = titleLine[1].trim().replace(/[/\\?%*:|"<>]/g, "_") + ".osu"; // sanitize filename
+			}
+
+			const blob = new Blob([osuContent], { type: "text/plain" });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = fileName;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			URL.revokeObjectURL(url);
+		}
+
+
+		//special thanks to RegExr, it was the real mvp during the making of this project
+	</script>
+	<a href="https://Filip55561.github.io/rob2osu">https://Filip55561.github.io/rob2osu</a><br />
+	<div>
+		<textarea id="in" name="textarea1" style="width:1000px;height:200px">Paste the contents of your RoBeats map script here!
 </textarea>
 
-            <br/><button id="convertButton" onclick="parser()">Convert!</button><br/><br/><br/><br/>  
-            
-			<textarea id="out" style="width:1000px;height:400px" readonly>osu! output</textarea>
-			<p id="instructions"></p>
+		<br /><button id="convertButton" onclick="parser()">Convert!</button><br />
+		<br /><button id="downloadButton" onclick="downloadOutput()">Download .osu</button> <br /><br />
 
-       </div>
+		<textarea id="out" style="width:1000px;height:400px" readonly>osu! output</textarea>
+		<p id="instructions"></p>
+
+	</div>
 </body>
+
 </html>
